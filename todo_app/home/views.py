@@ -2,8 +2,8 @@ from django.shortcuts import render,redirect
 from django.contrib.auth.models import User,auth
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
-from . forms import texts
-
+from home.forms import TaskForm
+from home.models import Task
 # Create your views here.
 
 def index(request):
@@ -36,7 +36,7 @@ def register(request):
         password=request.POST['password']
         if User.objects.filter(username=username).exists():
             messages.info(request,"username already exists")
-            return redirect('register')
+            return redirect('reg')
         elif User.objects.filter(email=email).exists():
             messages.info(request,"email taken")  
             return redirect('reg')
@@ -51,18 +51,39 @@ def logout(request):
     auth_logout(request)
     return redirect('logn') 
 
-from . models import todo_text
 
 def index(request):
+    tasks = Task.objects.all()
+    # print(tasks)
     if request.user.is_authenticated:
         if request.method == 'POST':
-            fm = texts(request.POST)
+            fm = TaskForm(request.POST)
             if fm.is_valid():
                 fm.save()
         else:
-            fm=texts()
-        tex = todo_text.objects.all()
-        return render(request, 'index.html', {'forms': fm, "tex": tex})
+            fm=TaskForm()
+        return render(request, 'list.html', {'forms': fm, "tasks": tasks})
     else:
         return redirect('logn')
+def updateTask(request, pk):
+	task = Task.objects.get(id=pk)
+	form = TaskForm(instance=task)
+	if request.method == 'POST':
+		form = TaskForm(request.POST, instance=task)
+		if form.is_valid():
+			form.save()
+			return redirect('/')
+
+	context = {'form':form}
+	return render(request, 'update_task.html', context)
+
+def deleteTask(request, pk):
+	item = Task.objects.get(id=pk)
+
+	if request.method == 'POST':
+		item.delete()
+		return redirect('/')
+
+	context = {'item':item}
+	return render(request, 'delete.html', context)
     
